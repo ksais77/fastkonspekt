@@ -31,6 +31,12 @@ async def upload(request: Request, file: UploadFile = File(...)):
     )
 
 
+@app.get("/api/model-check")
+def model_check():
+    answer = llm.ask_model("Ответь одним словом: ты работаешь?")
+    return {"model_answer": answer}
+
+
 @app.post("/api/summarize")
 async def api_summarize(file: UploadFile = File(...)):
     """Тот же путь, но ответ в JSON. Это и есть договорённость между фронтом и бэком."""
