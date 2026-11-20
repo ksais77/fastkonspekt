@@ -35,3 +35,17 @@ def summarize(text: str) -> str:
     )
     response.raise_for_status()
     return response.json()["message"]["content"]
+
+ 
+def ask_model(prompt: str) -> str:
+    response = httpx.post(
+        "http://localhost:11434/api/chat",
+        json={
+            "model": "gemma3:4b",
+            "stream": False,
+            "messages": [{"role": "user", "content": prompt}],
+        },
+        timeout=120,
+    )
+    response.raise_for_status()
+    return response.json()["message"]["content"]
