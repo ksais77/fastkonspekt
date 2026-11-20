@@ -1,36 +1,237 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <title>Свод — скелет</title>
-  <style>
-    body { font-family: sans-serif; max-width: 720px; margin: 40px auto; }
-    .result { border: 1px solid #ccc; padding: 12px; margin: 16px 0; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FastКонспект — создание и редактирование конспектов из документов">
+  <title>FastКонспект — умные конспекты</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script defer src="{{ url_for('static', path='js/main.js') }}"></script>
 </head>
 <body>
-  <!-- Слой интерфейса: форма и показ результата. -->
-  <h1>Свод — скелет</h1>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="FastКонспект — главная">
+        <span class="brand-mark">f</span>
+        <span>fast<span class="brand-light">конспект</span></span>
+      </a>
 
-  <form action="/upload" method="post" enctype="multipart/form-data">
-    <input type="file" name="file" required>
-    <button type="submit">Обработать</button>
-  </form>
+      <div class="sidebar-caption">РАБОЧЕЕ ПРОСТРАНСТВО</div>
+      <nav class="main-nav" aria-label="Основная навигация">
+        <a class="nav-link active" href="#create"><span class="nav-icon">✦</span> Новый конспект</a>
+        <a class="nav-link" href="#library"><span class="nav-icon">▤</span> Мои конспекты</a>
+      </nav>
 
-  {% if last %}
-  <div class="result">
-    <b>{{ last.filename }}</b>
-    <p>{{ last.summary }}</p>
+      <div class="sidebar-bottom">
+        <div class="help-card">
+          <div class="help-icon">?</div>
+          <strong>Нужна помощь?</strong>
+          <p>Загрузи документ, выбери параметры — и получи готовый конспект.</p>
+        </div>
+        <div class="profile">
+          <div class="avatar">Д</div>
+          <div class="profile-info">
+            <strong>Мой профиль</strong>
+            <span>Личный кабинет</span>
+          </div>
+          <span class="profile-dots">•••</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="breadcrumb">Рабочее пространство <span>/</span> Новый конспект</div>
+        <div class="topbar-right">
+          <span class="status-dot"></span>
+          <span class="topbar-status">Сервис готов к работе</span>
+          <div class="top-avatar">Д</div>
+        </div>
+      </header>
+
+      <div class="page-wrap">
+        <section class="welcome-row" id="create">
+          <div>
+            <div class="eyebrow">ВАШ ПОМОЩНИК В УЧЁБЕ</div>
+            <h1>Создай свой конспект<span class="title-period">.</span></h1>
+            <p class="page-subtitle">Преврати большой документ в понятный и структурированный материал.</p>
+          </div>
+          <div class="welcome-illustration" aria-hidden="true">
+            <div class="illustration-sheet sheet-back"></div>
+            <div class="illustration-sheet sheet-front">
+              <span></span><span></span><span></span><i></i>
+            </div>
+            <div class="sparkle sparkle-one">✦</div>
+            <div class="sparkle sparkle-two">✧</div>
+          </div>
+        </section>
+
+        <section class="workspace-grid">
+          <div class="panel source-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="step-label">ШАГ 01</span>
+                <h2>Добавь материал</h2>
+              </div>
+              <span class="heading-icon lavender">↥</span>
+            </div>
+
+            <div class="source-tabs" role="tablist" aria-label="Способ добавления материала">
+              <button class="source-tab active" type="button" role="tab" aria-selected="true" data-source-tab="file">Загрузить файл</button>
+              <button class="source-tab" type="button" role="tab" aria-selected="false" data-source-tab="text">Вставить текст</button>
+            </div>
+
+            <div class="source-content" data-source-panel="file">
+              <label class="upload-zone" for="document-file" id="drop-zone">
+                <span class="upload-icon">↑</span>
+                <strong>Перетащи файл сюда</strong>
+                <span>или <u>выбери на компьютере</u></span>
+                <small>PDF, DOCX или TXT · до 20 страниц</small>
+                <input id="document-file" name="file" type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
+              </label>
+              <div class="file-selected" id="file-selected" hidden>
+                <span class="file-type-icon">DOC</span>
+                <span class="file-details"><strong id="file-name"></strong><small id="file-size"></small></span>
+                <button class="remove-file" type="button" id="remove-file" aria-label="Удалить файл">×</button>
+              </div>
+              <p class="field-hint" id="file-error" role="alert"></p>
+            </div>
+
+            <div class="source-content" data-source-panel="text" hidden>
+              <label class="field-label" for="source-text">Текст документа</label>
+              <textarea id="source-text" class="source-textarea" placeholder="Вставь сюда текст, из которого нужно сделать конспект..."></textarea>
+              <div class="textarea-meta"><span>Можно вставить текст вручную</span><span id="source-counter">0 символов</span></div>
+            </div>
+
+            <div class="divider-line"></div>
+
+            <div class="panel-heading compact-heading">
+              <div>
+                <span class="step-label">ШАГ 02</span>
+                <h2>Настрой конспект</h2>
+              </div>
+            </div>
+
+            <fieldset class="option-group">
+              <legend>Объём конспекта</legend>
+              <div class="choice-grid three">
+                <label class="choice-card">
+                  <input type="radio" name="length" value="short" checked>
+                  <span class="choice-check"></span>
+                  <strong>Краткий</strong>
+                  <small>Только главное</small>
+                </label>
+                <label class="choice-card">
+                  <input type="radio" name="length" value="medium">
+                  <span class="choice-check"></span>
+                  <strong>Средний</strong>
+                  <small>Главное + детали</small>
+                </label>
+                <label class="choice-card">
+                  <input type="radio" name="length" value="detailed">
+                  <span class="choice-check"></span>
+                  <strong>Подробный</strong>
+                  <small>Максимум деталей</small>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="option-group structure-group">
+              <legend>Структура</legend>
+              <div class="choice-grid two">
+                <label class="choice-card structure-choice">
+                  <input type="radio" name="structure" value=" тезисы" checked>
+                  <span class="structure-symbol">☷</span>
+                  <span><strong>Список тезисов</strong><small>Ключевые мысли по пунктам</small></span>
+                </label>
+                <label class="choice-card structure-choice">
+                  <input type="radio" name="structure" value="blocks">
+                  <span class="structure-symbol">▤</span>
+                  <span><strong>По блокам</strong><small>Разделы с подзаголовками</small></span>
+                </label>
+              </div>
+            </fieldset>
+
+            <button class="primary-button generate-button" type="button" id="generate-button">
+              <span>Создать конспект</span><span class="button-arrow">→</span>
+            </button>
+            <p class="privacy-note"><span>♧</span> Твои материалы используются только для создания конспекта.</p>
+            <p class="form-message" id="form-message" role="status"></p>
+          </div>
+
+          <div class="panel result-panel">
+            <div class="panel-heading result-heading">
+              <div>
+                <span class="step-label">ШАГ 03</span>
+                <h2>Твой конспект</h2>
+              </div>
+              <span class="result-status" id="result-status"><i></i> Ожидает материал</span>
+            </div>
+
+            <div class="empty-state" id="empty-state">
+              <div class="empty-art">
+                <div class="empty-page"><span></span><span></span><span></span><span></span></div>
+                <div class="empty-star">✦</div>
+              </div>
+              <h3>Здесь появится твой конспект</h3>
+              <p>Добавь документ или текст, выбери настройки и нажми «Создать конспект».</p>
+            </div>
+
+            <div class="editor-area" id="editor-area" hidden>
+              <div class="editor-toolbar">
+                <div class="toolbar-group" aria-label="Форматирование текста">
+                  <button type="button" data-format="bold" title="Жирный"><b>B</b></button>
+                  <button type="button" data-format="italic" title="Курсив"><i>I</i></button>
+                  <button type="button" data-format="heading" title="Заголовок">H</button>
+                  <span class="toolbar-divider"></span>
+                  <button type="button" data-format="ul" title="Маркированный список">•≡</button>
+                  <button type="button" data-format="ol" title="Нумерованный список">1.</button>
+                </div>
+                <div class="view-switch" role="tablist" aria-label="Режим редактора">
+                  <button type="button" class="view-tab active" data-view="edit">Редактор</button>
+                  <button type="button" class="view-tab" data-view="preview">Предпросмотр</button>
+                </div>
+              </div>
+              <textarea id="summary-editor" class="summary-editor" aria-label="Редактор Markdown" spellcheck="false"></textarea>
+              <article id="summary-preview" class="summary-preview markdown-body" hidden></article>
+              <div class="editor-footer">
+                <span id="save-indicator">Изменения ещё не сохранены</span>
+                <button type="button" class="text-button" id="save-summary">Сохранить изменения</button>
+              </div>
+            </div>
+
+            <div class="result-actions" id="result-actions" hidden>
+              <button type="button" class="secondary-button" id="download-pdf">↓ Экспорт в PDF</button>
+              <button type="button" class="secondary-button" id="save-copy">Сохранить конспект</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel library-panel" id="library">
+          <div class="panel-heading">
+            <div>
+              <span class="step-label">ВАША БИБЛИОТЕКА</span>
+              <h2>Мои конспекты</h2>
+            </div>
+            <span class="library-count" id="library-count">0 документов</span>
+          </div>
+          <div class="library-empty" id="library-empty">
+            <span class="library-empty-icon">▤</span>
+            <span>Сохранённые конспекты появятся здесь.</span>
+          </div>
+          <div class="library-list" id="library-list"></div>
+        </section>
+
+        <footer class="page-footer">
+          <span>© 2026 FastКонспект</span>
+          <span>Учись проще. Запоминай главное.</span>
+        </footer>
+      </div>
+    </main>
   </div>
-  {% endif %}
-
-  <h2>История</h2>
-  <ul>
-    {% for doc in documents %}
-    <li>{{ doc.created_at }} — {{ doc.filename }}</li>
-    {% else %}
-    <li>Пока ничего не загружено</li>
-    {% endfor %}
-  </ul>
-</body>
+  </body>
 </html>
