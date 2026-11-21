@@ -67,12 +67,21 @@ tests/        сценарии тестирования
 ```
 
 ## Запуск
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
 
-Раздел будет дополнен, когда появится первая рабочая версия. План:
+Открыть: http://127.0.0.1:8000
 
-1. Установить Docker и Ollama, выполнить `ollama pull gemma3:4b`.
-2. Скопировать `.env.example` в `.env` и заполнить значения.
-3. Запустить `docker compose up`.
+
+## Модель
+Нужна Ollama и модель gemma3:4b: ollama pull gemma3:4b
+ 
+## Что пока заглушки
+- extract.py: распознавание фото
+- llm.py, parse_receipt: разбор чека моделью
+- storage.py: база данных
 
 ## Как работаем с Git
 
