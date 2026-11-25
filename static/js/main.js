@@ -140,41 +140,78 @@
     if (currentView === 'preview') updatePreview();
   });
 
-  document.getElementById('generate-button').addEventListener('click', () => {
-    const activeTab = document.querySelector('[data-source-tab].active').dataset.sourceTab;
-    const pasted = sourceText.value.trim();
-    formMessage.textContent = '';
-    if (activeTab === 'file' && !selectedFile) {
-      formMessage.textContent = 'Сначала выбери файл для загрузки.';
-      return;
-    }
-    if (activeTab === 'text' && !pasted) {
-      formMessage.textContent = 'Вставь текст, из которого нужно сделать конспект.';
-      return;
-    }
-    if (activeTab === 'file' && selectedFile.size === 0) {
-      formMessage.textContent = 'Файл пустой. Выбери другой документ.';
-      return;
-    }
-    if (activeTab === 'file' && selectedFile.size > 15 * 1024 * 1024) {
-      formMessage.textContent = 'Файл слишком большой. Выбери документ меньшего размера.';
-      return;
-    }
+    const generateButton = document.getElementById('generate-button');
+    generateButton.addEventListener('click', async () => {
+      const activeTab = document.querySelector('[data-source-tab].active').dataset.sourceTab;
+      const pasted = sourceText.value.trim();
+      formMessage.textContent = '';
 
-    // Temporary UI stub: the real endpoint will extract the document text,
-    // call the model and store the result on the FastAPI backend.
-    const sourceName = activeTab === 'file' ? selectedFile.name : 'Вставленный текст';
-    const length = document.querySelector('input[name="length"]:checked').value;
-    const structure = document.querySelector('input[name="structure"]:checked').value.trim();
-    const sourceExcerpt = activeTab === 'text' ? pasted.slice(0, 260) : 'Материал документа будет обработан сервером после подключения backend.';
-    editor.value = `# ${sourceName.replace(/\.[^.]+$/, '')}\n\n## Основные положения\n\n- Подготовлен материал для создания конспекта.\n- Выбранный объём: ${length === 'short' ? 'краткий' : length === 'medium' ? 'средний' : 'подробный'}.\n- Выбранная структура: ${structure === 'blocks' ? 'по блокам' : 'список тезисов'}.\n\n## Исходный материал\n\n${sourceExcerpt}\n\n> Демонстрационная заглушка интерфейса. Реальная генерация появится после подключения API и языковой модели.`;
-    emptyState.hidden = true;
-    editorArea.hidden = false;
-    resultActions.hidden = false;
-    resultStatus.innerHTML = '<i></i> Демонстрационный результат';
-    setView('edit');
-    document.getElementById('save-indicator').textContent = 'Изменения ещё не сохранены';
-  });
+      if (activeTab === 'file' && !selectedFile) {
+        formMessage.textContent = 'Сначала выбери файл для загрузки.';
+        return;
+      }
+      if (activeTab === 'text' && !pasted) {
+        formMessage.textContent = 'Вставь текст, из которого нужно сделать конспект.';
+        return;
+      }
+      if (activeTab === 'file' && selectedFile.size === 0) {
+        formMessage.textContent = 'Файл пустой. Выбери другой документ.';
+        return;
+      }
+      if (activeTab === 'file' && selectedFile.size > 15 * 1024 * 1024) {
+        formMessage.textContent = 'Файл слишком большой. Выбери документ меньшего размера.';
+        return;
+      }
+
+      const length = document.querySelector('input[name="length"]:checked').value;
+      const checked = document.querySelector('input[name="structure"]:checked').value;
+      const structure = checked === 'blocks' ? 'blocks' : 'theses';
+
+      let url;
+      let options;
+      if (activeTab === 'file') {
+        const body = new FormData();
+        body.append('file', selectedFile);
+        body.append('length', length);
+        body.append('structure', structure);
+        url = '/api/summarize';
+        options = { method: 'POST', body };
+      } else {
+        url = '/api/summarize-text';
+        options = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: pasted, length, structure })
+        };
+      }
+
+      generateButton.disabled = true;
+      formMessage.textContent = 'Создаём конспект, подожди...';
+
+      try {
+        const response = await fetch(url, options);
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data) {
+          const detail = typeof data?.detail === 'string' ? data.detail : null;
+          throw new Error(detail || `Ошибка сервера (${response.status})`);
+        }
+
+        editor.value = `# ${data.title.replace(/\.(pdf|docx|txt)$/i, '')}\n\n${data.summary}`;
+        emptyState.hidden = true;
+        editorArea.hidden = false;
+        resultActions.hidden = false;
+        resultStatus.innerHTML = '<i></i> Конспект получен';
+        setView('edit');
+        document.getElementById('save-indicator').textContent = 'Изменения ещё не сохранены';
+        formMessage.textContent = '';
+      } catch (error) {
+        formMessage.textContent = error instanceof TypeError
+          ? 'Не удалось связаться с сервером.'
+          : error.message;
+      } finally {
+        generateButton.disabled = false;
+      }
+    });
 
   function saveCurrentSummary() {
     const title = editor.value.split('\n').find(line => line.startsWith('# '))?.replace(/^# /, '') || 'Новый конспект';

@@ -8,44 +8,52 @@ import httpx
 USE_OLLAMA = os.getenv("USE_OLLAMA", "0") == "1"
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 MODEL = os.getenv("OLLAMA_MODEL", "gemma3:4b")
+TIMEOUT = 300 # секунд, как в ФТ-05
 
 SYSTEM_PROMPT = (
-    "Ты кратко пересказываешь документы на русском языке. "
-    "Пиши 3–5 предложений, только по тексту документа, ничего не придумывай."
+    "Ты составляешь конспекты документов на русском языке. "
+    "Пиши только по тексту документа, ничего не придумывай. "
+    "Оформляй ответ в Markdown. Выдавай только конспект, без вступлений."
 )
 
+LENGTHS = {
+    "short": "Сделай краткий конспект: только главное.",
+    "medium": "Сделай конспект среднего объёма: главное и важные детали.",
+    "detailed": "Сделай подробный конспект: сохрани все существенные детали.",
+}
 
-def summarize(text: str) -> str:
-    if not USE_OLLAMA:
-        # ЗАГЛУШКА: модель ещё не подключена, но весь путь запроса уже работает.
-        return "Краткое содержание (заглушка): модель пока не подключена."
+STRUCTURES = {
+    "theses": "Оформи списком тезисов, каждый пункт начинай с '- '.",
+    "blocks": "Раздели на блоки с подзаголовками, начинающимися с '## '.",
+}
 
-    # НАСТОЯЩИЙ ВЫЗОВ: один запрос к Ollama.
+def ask_model(prompt: str, system: str | None = None) -> str:
+    """Единственный вызов Ollama: отправляет запрос, возвращает текст ответа."""
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
+
     response = httpx.post(
         f"{OLLAMA_URL}/api/chat",
         json={
             "model": MODEL,
             "stream": False,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": text},
-            ],
+            "messages": messages,
+            "options": {"num_ctx": 8192},
         },
-        timeout=120,
+        timeout=TIMEOUT,
     )
     response.raise_for_status()
     return response.json()["message"]["content"]
 
- 
-def ask_model(prompt: str) -> str:
-    response = httpx.post(
-        "http://localhost:11434/api/chat",
-        json={
-            "model": "gemma3:4b",
-            "stream": False,
-            "messages": [{"role": "user", "content": prompt}],
-        },
-        timeout=120,
-    )
-    response.raise_for_status()
-    return response.json()["message"]["content"]
+
+def summarize(text: str, length: str = "short", structure: str = "theses") -> str:
+    if not USE_OLLAMA:
+        return f"Заглушка: модель не подключена. Объём: {length}, структура: {structure}."
+    system = " ".join([
+        SYSTEM_PROMPT,
+        LENGTHS.get(length, LENGTHS["short"]),
+        STRUCTURES.get(structure, STRUCTURES["theses"]),
+    ])
+    return ask_model(text, system=system)

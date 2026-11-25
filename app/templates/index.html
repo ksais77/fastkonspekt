@@ -102,9 +102,11 @@
             </div>
 
             <div class="source-content" data-source-panel="text" hidden>
-              <label class="field-label" for="source-text">Текст документа</label>
-              <textarea id="source-text" class="source-textarea" placeholder="Вставь сюда текст, из которого нужно сделать конспект..."></textarea>
-              <div class="textarea-meta"><span>Можно вставить текст вручную</span><span id="source-counter">0 символов</span></div>
+              <form id="text-form" action="/upload-text" method="post">
+                <label class="field-label" for="source-text">Текст документа</label>
+                <textarea id="source-text" name="text" class="source-textarea" rows="8" placeholder="Вставьте текст" required></textarea>
+                <div class="textarea-meta"><span>Можно вставить текст вручную</span><span id="source-counter">0 символов</span></div>
+              </form>
             </div>
 
             <div class="divider-line"></div>
@@ -120,19 +122,19 @@
               <legend>Объём конспекта</legend>
               <div class="choice-grid three">
                 <label class="choice-card">
-                  <input type="radio" name="length" value="short" checked>
+                  <input type="radio" name="length" value="short" form="text-form" checked>
                   <span class="choice-check"></span>
                   <strong>Краткий</strong>
                   <small>Только главное</small>
                 </label>
                 <label class="choice-card">
-                  <input type="radio" name="length" value="medium">
+                  <input type="radio" name="length" value="medium" form="text-form">
                   <span class="choice-check"></span>
                   <strong>Средний</strong>
                   <small>Главное + детали</small>
                 </label>
                 <label class="choice-card">
-                  <input type="radio" name="length" value="detailed">
+                  <input type="radio" name="length" value="detailed" form="text-form">
                   <span class="choice-check"></span>
                   <strong>Подробный</strong>
                   <small>Максимум деталей</small>
@@ -144,12 +146,12 @@
               <legend>Структура</legend>
               <div class="choice-grid two">
                 <label class="choice-card structure-choice">
-                  <input type="radio" name="structure" value=" тезисы" checked>
+                  <input type="radio" name="structure" value=" тезисы" form="text-form" checked>
                   <span class="structure-symbol">☷</span>
                   <span><strong>Список тезисов</strong><small>Ключевые мысли по пунктам</small></span>
                 </label>
                 <label class="choice-card structure-choice">
-                  <input type="radio" name="structure" value="blocks">
+                  <input type="radio" name="structure" value="blocks" form="text-form">
                   <span class="structure-symbol">▤</span>
                   <span><strong>По блокам</strong><small>Разделы с подзаголовками</small></span>
                 </label>
